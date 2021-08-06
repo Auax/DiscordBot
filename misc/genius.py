@@ -1,8 +1,8 @@
 from difflib import SequenceMatcher
 from typing import Union, Optional
 
+import lyricsgenius
 import requests
-from bs4 import BeautifulSoup
 
 from misc import auth
 
@@ -26,6 +26,15 @@ class GeniusSong:
     def __str__(self):
         return self.song
 
+    def fastlyrics(self, song: Optional[str] = None, artist: Optional[str] = None) -> str:
+        """Returns the lyrics from a song using the GENIUS api"""
+        song = song if song else self.song
+        artist = artist if artist else self.artist
+
+        api = lyricsgenius.Genius(self.genius_token)
+        song = api.search_song(song, artist)
+        return song.lyrics
+
     def get_response(self) -> Union[dict, bool]:
         # Get lyrics using the GENIUS API
         # Create endpoint URL
@@ -38,7 +47,7 @@ class GeniusSong:
         else:
             return False
 
-    def filter_hit_by_artist(self, response: dict, min_similarity: float = 0.7) -> Union[dict, bool]:
+    def return_similar_artist(self, response: dict, min_similarity: float = 0.7) -> Union[str, bool]:
         """Filter hits by an artist.
         If there is some error or the similarity is not met, then return False.
         :response: the dictionary containing all the hits
@@ -51,39 +60,15 @@ class GeniusSong:
                 string_similarity = SequenceMatcher(None, name.lower(), self.artist.lower()).ratio()
 
                 # Print info
-                print("\n{:<12}{:<30}{:<30}".format("Score", "YouTube Artist", "Genius Artist"))
+                print("\n{:<12}{:<30}{:<30}".format("Score", "Genius Artist", "YouTube Artist"))
                 print("{:<12.2f}{:<30}{:<30}".format(string_similarity, name, self.artist))
 
                 if string_similarity > min_similarity:
-                    self.song_hit = hit
-                    self.song_url = hit["result"]["url"]
-                    return hit
+                    return name
                 else:
                     return False
 
         except KeyError:
-            return False
-
-    def get_lyrics(self, song_url: Optional[str] = None) -> Union[str, bool]:
-        """Use web scrapping to get the lyrics from the Genius website.
-        :song_api_path: the required path (returned by the Genius API)
-        to find the website containing the lyrics
-        """
-
-        if not self.song_url and not song_url:
-            return False
-
-        song_url = song_url if song_url else self.song_url
-        page = requests.get(song_url)
-        html = BeautifulSoup(page.text, "html.parser")
-        # Remove script tags that they put in the middle of the lyrics
-        [h.extract() for h in html('script')]
-        # At least Genius is nice and has a tag called 'lyrics'!
-        try:
-            lyrics = html.find("div", class_="lyrics").get_text()  # Updated css where the lyrics are based in HTML
-            return lyrics
-
-        except AttributeError:
             return False
 
     @staticmethod

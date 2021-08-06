@@ -543,34 +543,41 @@ class Music(commands.Cog):
         song_title = re.sub("[(\[].*?[)\]]", "", song_title).strip()  # remove parenthesis from song title
         # Get artist name listed on youtube
         artist_name = ctx.voice_state.current.source.artist
-
+        # Instance of GeniusSong class using the Genius API
         genius_song = GeniusSong(song_title, artist_name)
-        res = genius_song.get_response()
-        if res:
-            hit = genius_song.filter_hit_by_artist(res)
-            if not hit:  # Artist didn't match
-                hit = res["response"]["hits"][0]  # Get first hit
-                await ctx.send("Couldn't find similar artists. The lyrics might not be the expected")
+        # Try getting the lyrics using the lyricsgenius library
+        lyrics = genius_song.fastlyrics()
 
-            song_url = hit["result"]["url"]
-            raw_lyrics = genius_song.get_lyrics(song_url)
+        # In case of no lyrics found. Use the other (slower) method
+        if not lyrics:
+            res = genius_song.get_response()  # Generate a response using the Genius API to get the songs
+            if res:
+                # Find the most similar artist comparing the artist on YouTube and Genius
+                artist_name = genius_song.return_similar_artist(res)
+                # Artist didn't match
+                if not artist_name:
+                    await ctx.send("Couldn't find similar artists. The lyrics might not be the expected")
 
-            if raw_lyrics:
-                # Generate embed
-                fields = genius_song.split_lyrics(raw_lyrics)
-                embed = embed_msg(
-                    title=song_title.capitalize() + "\n{}".format(artist_name),
-                    description="",
-                    footer="Lyrics provided by Genius",
-                    field_values=fields,
-                    inline=False
-                )
-                return await ctx.send(embed=embed)
+                # Get the lyrics using the lyricsgenius library with the new artist
+                lyrics = genius_song.fastlyrics(artist_name)
 
             else:
                 return await ctx.send(
                     "**Error!**\nThere is a problem with Genius.\nTry again in a few minutes. "
                     "\nYou can also try the command `fastlyrics`")
+
+        if lyrics:
+            # Split lyrics into fields
+            fields = genius_song.split_lyrics(lyrics)
+            # Create an embed message
+            embed = embed_msg(
+                title=song_title.capitalize() + "\n{}".format(artist_name),
+                description="",
+                footer="Lyrics provided by Genius",
+                field_values=fields,
+                inline=False
+            )
+            return await ctx.send(embed=embed)
 
         return await ctx.send("Lyrics couldn't be found.")
 
