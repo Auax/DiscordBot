@@ -1,0 +1,9 @@
+{
+  "discord": {
+    "token": "",
+    "guild": ""
+  },
+  "apis": {
+    "genius_token": ""
+  }
+}

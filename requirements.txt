@@ -1,0 +1,5 @@
+discord~=1.7.3
+PyNaCl==1.4.0
+pafy==0.5.5
+youtube_dl==2021.6.6
+requests~=2.25.1
