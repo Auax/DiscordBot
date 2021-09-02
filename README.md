@@ -2,7 +2,10 @@
 This is an open source bot created with the Discord Python library.
 
 ## Prefix
-The default prefix is set to a simple slash: `/`
+The default prefix is set to: `!` or `/`.
+
+## Configuration
+It's important to change the `authentication.json` file and set your own tokens.
 
 ---
 ## Commands
