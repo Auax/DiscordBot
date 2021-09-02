@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from misc import auth
 
-"""This is a Discord bot created by Ibai Farina (2006): https://github.com/auax
+"""This is a Discord bot created by Ibai Farina (2006)
 """
 
 
@@ -28,8 +28,7 @@ initial_extensions = ['modules.voice']
 # Authentication token
 token = auth.authenticate("config/authentication.json", "discord").get("token")
 
-bot = commands.Bot(command_prefix=get_prefix, description="Auax Discord bot. Created by Ibai Farina (2006) "
-                                                          "github.com/auax")
+bot = commands.Bot(command_prefix=get_prefix, description="Music bot by Zellius")
 
 
 @bot.event
@@ -38,7 +37,7 @@ async def on_ready():
     print(f'Logged in as: {bot.user.name} - {bot.user.id}\nVersion: {discord.__version__}\n')
 
     # Changes our bots Playing Status. type=1(streaming) for a standard game you could remove type and url.
-    await bot.change_presence(activity=discord.Game(name='help', type=1, url='https://twitch.tv/astok'))
+    await bot.change_presence(activity=discord.Game(name='!help', type=1, url='https://twitch.tv/astok'))
     print(f'Successfully logged in and booted...!')
 
 

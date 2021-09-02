@@ -2,6 +2,8 @@ import asyncio
 import functools
 import itertools
 import math
+import platform
+
 import random
 import re
 
@@ -9,19 +11,18 @@ import discord
 import youtube_dl
 from async_timeout import timeout
 from discord.ext import commands
-
-from exceptions import YTDLError, VoiceError
-from misc.embed import video_embed, embed_msg
+from exceptions import VoiceError, YTDLError
+from misc.embed import embed_msg, video_embed
 from misc.genius import GeniusSong
 
 """
 VOICE MODULE
-This module is the base to play music. 
 
 The commands include:
   join    Joins a voice channel.
   leave   Clears the queue and leaves the voice channel.
   loop    Loops the currently playing song.
+  lyrics  Get the lyrics of the current song.
   now     Displays the currently playing song.
   pause   Pauses the currently playing song.
   play    Plays a song.
@@ -37,6 +38,9 @@ The commands include:
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
+    """
+    Creates the song source
+    """
     # YTDL options used to stream
     YTDL_OPTIONS = {
         'format': 'bestaudio/best',
@@ -85,9 +89,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.url = data.get('webpage_url')
 
         # Not shown in the response message. Can comment out.
-        self.views = data.get('view_count')
-        self.likes = data.get('like_count')
-        self.dislikes = data.get('dislike_count')
+        # self.views = data.get('view_count')
+        # self.likes = data.get('like_count')
+        # self.dislikes = data.get('dislike_count')
 
     def __str__(self):
         return f'**{self.title}** by **{self.uploader}**'
@@ -185,6 +189,7 @@ class SongQueue(asyncio.Queue):
 
     def __getitem__(self, item):
         """
+        This is how lists work
         Get Item using:
         - Index. e.g: list[1]
         - Slice. e.g: list[1:5]
@@ -266,6 +271,21 @@ class VoiceState:
                     return
 
             self.current.source.volume = self._volume
+
+            """
+            Temporal fix for Darwin devices:
+            self.voice.play checks whether there is an encoder defined (in my device it's not)
+            If the encoder is undefined it will run the Encoder() class to define it.
+            The class __init__ method tries to define some variables using
+            _lib.opus_encoder_ctl().
+            This method stops the code when it's executed.
+            The fix creates a custom Encoder() class inheriting from the original subclass,
+            but this one doesn't call the _lib.opus_encoder_ctl() method
+            """
+            if platform.system() == "Darwin":
+                import fixes.opus_darwin  # Import opus custom class
+                self.voice.encoder = fixes.opus_darwin.Encoder()
+
             self.voice.play(self.current.source, after=self.play_next_song)
 
             # Create custom embed message
@@ -512,7 +532,7 @@ class Music(commands.Cog):
         If there are songs in the queue, this will be queued until the
         other songs finished playing.
         This command automatically searches from various sites if no URL is provided.
-        A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
+        A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html.
         """
 
         if not ctx.voice_state.voice:
@@ -540,7 +560,7 @@ class Music(commands.Cog):
         if not song_title:
             return await ctx.send("Couldn't find lyrics for this track!")
 
-        song_title = re.sub("[(\[].*?[)\]]", "", song_title).strip()  # remove parenthesis from song title
+        song_title = re.sub("[(\[].*?[)\]]", "", song_title).strip()  # Remove parenthesis from song title
         # Get artist name listed on youtube
         artist_name = ctx.voice_state.current.source.artist
         # Instance of GeniusSong class using the Genius API
@@ -556,7 +576,7 @@ class Music(commands.Cog):
                 artist_name = genius_song.return_similar_artist(res)
                 # Artist didn't match
                 if not artist_name:
-                    await ctx.send("Couldn't find similar artists. The lyrics might not be the expected")
+                    await ctx.send("Couldn't find similar artists. The lyrics might not be the expected.")
 
                 # Get the lyrics using the lyricsgenius library with the new artist
                 lyrics = genius_song.fastlyrics(artist_name)
@@ -564,7 +584,7 @@ class Music(commands.Cog):
             else:
                 return await ctx.send(
                     "**Error!**\nThere is a problem with Genius.\nTry again in a few minutes. "
-                    "\nYou can also try the command `fastlyrics`")
+                    "\nYou can also try the command `fastlyrics`.")
 
         if lyrics:
             # Split lyrics into fields
@@ -573,7 +593,7 @@ class Music(commands.Cog):
             embed = embed_msg(
                 title=song_title.capitalize() + "\n{}".format(artist_name),
                 description="",
-                footer="Lyrics provided by Genius",
+                footer="Lyrics provided by Genius.",
                 field_values=fields,
                 inline=False
             )
