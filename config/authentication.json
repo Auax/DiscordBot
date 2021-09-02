@@ -1,9 +1,9 @@
 {
   "discord": {
-    "token": "NjU2MTM4ODgzMTM4MDYwMjg5.XfeS9A.xsTaxGKAZrlWQM1NskLKnF3ppTk",
+    "token": "",
     "guild": ""
   },
   "apis": {
-    "genius_token": "DY3evRo0jAouMqZHzbLry2qCe0S-SPz2Pl7zAUuh0FrGiP4ZLFguHzZOKBeSr3iQ"
+    "genius_token": ""
   }
 }
